@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steven Atauchi - Pixel Art & SMW Romhacking</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/Z2QBUxO.gif">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Press Start 2P & Silkscreen -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        .font-pixel { font-family: 'Press Start 2P', cursive, monospace; }
+        .font-retro { font-family: 'Silkscreen', cursive, monospace; }
+
+        /* ===== Paletas ===== */
+        :root {
+            --bg-main: #0f0f1b;
+            --bg-card: #181829;
+            --border-outer: #383859;
+            --border-inner: #5c5c8a;
+            --text-main: #e2e2ff;
+            --accent-main: #ff3b47;
+            --accent-cyan: #55ffff;
+            --accent-yellow: #ffcc00;
+            --accent-green: #55ff55;
+            --panel-header: #24243e;
+            --scanline-opacity: 0.15;
+        }
+
+        .theme-gb {
+            --bg-main: #0f380f;
+            --bg-card: #1f521f;
+            --border-outer: #306230;
+            --border-inner: #8bac0f;
+            --text-main: #9bbc0f;
+            --accent-main: #8bac0f;
+            --accent-cyan: #9bbc0f;
+            --accent-yellow: #8bac0f;
+            --accent-green: #9bbc0f;
+            --panel-header: #306230;
+        }
+
+        .theme-cyber {
+            --bg-main: #0d001a;
+            --bg-card: #1a0033;
+            --border-outer: #800080;
+            --border-inner: #ff00ff;
+            --text-main: #00ffff;
+            --accent-main: #ff007f;
+            --accent-cyan: #00ffff;
+            --accent-yellow: #ffff00;
+            --accent-green: #00ff66;
+            --panel-header: #2b004f;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            image-rendering: pixelated;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .pixel-img { image-rendering: pixelated; }
+
+        .pixel-box {
+            background-color: var(--bg-card);
+            border: 4px solid var(--border-outer);
+            box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.5), inset 4px 4px 0px 0px rgba(255,255,255,0.1);
+            position: relative;
+        }
+
+        .pixel-box-header {
+            background-color: var(--panel-header);
+            border-bottom: 4px solid var(--border-outer);
+        }
+
+        .pixel-btn {
+            background-color: var(--border-outer);
+            border: 2px solid var(--text-main);
+            box-shadow: 0 4px 0 var(--border-inner);
+            transition: all 0.1s ease;
+            cursor: pointer;
+        }
+        .pixel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 var(--border-inner);
+            filter: brightness(1.2);
+        }
+        .pixel-btn:active, .pixel-btn.active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--border-inner);
+            background-color: var(--accent-main);
+            color: #000;
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--accent-yellow);
+            outline-offset: 2px;
+        }
+
+        .crt::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: var(--scanline-opacity);
+        }
+
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: var(--border-outer); border: 2px solid var(--border-inner); }
+
+        @keyframes pixelBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .sprite-animated { animation: pixelBounce 1.2s infinite steps(2); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sprite-animated, .animate-pulse { animation: none !important; }
+            * { transition: none !important; }
+        }
+
+        /* Opciones seleccionables (radio / checkbox) */
+        .opt {
+            background: rgba(0,0,0,0.4);
+            border: 2px solid var(--border-inner);
+            cursor: pointer;
+        }
+        .opt:hover { border-color: var(--accent-main); }
+        .opt:has(input:checked) { border-color: var(--accent-main); background: rgba(255,255,255,0.06); }
+
+        /* Barra de slots */
+        .slot { width: 10px; height: 14px; border: 2px solid var(--border-inner); background: rgba(0,0,0,0.4); }
+        .slot.used { background: var(--accent-main); border-color: var(--accent-main); }
+
+        /* Barra de progreso de comisión */
+        .stage-seg { height: 12px; border: 2px solid var(--border-inner); background: rgba(0,0,0,0.4); }
+        .stage-seg.done { background: var(--accent-cyan); border-color: var(--accent-cyan); }
+        .stage-seg.current { background: var(--accent-main); border-color: var(--accent-main); }
+
+        .hl { outline: 4px solid var(--accent-yellow); outline-offset: 4px; }
+
+        .stepper-btn { width: 28px; height: 28px; line-height: 1; }
+    </style>
+</head>
+<body class="crt min-h-screen flex flex-col font-retro selection:bg-red-500 selection:text-white">
+
+    <!-- ================= HEADER ================= -->
+    <header class="sticky top-0 z-50 bg-opacity-95 backdrop-blur-sm border-b-4 border-[var(--border-outer)] bg-[var(--bg-main)]">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <!-- Marca -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
+                <div class="w-10 h-10 flex-shrink-0 border-2 border-[var(--border-inner)] bg-black/40 flex items-center justify-center overflow-hidden">
+                    <img data-avatar alt="Steven Atauchi" class="w-full h-full object-cover pixel-img"
+                         onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                    <svg class="hidden w-7 h-7 sprite-animated fill-current text-[var(--accent-main)]" viewBox="0 0 16 16" aria-hidden="true">
+                        <rect x="3" y="2" width="10" height="2"/><rect x="2" y="4" width="12" height="2"/>
+                        <rect x="2" y="6" width="4" height="2"/><rect x="8" y="6" width="2" height="2"/><rect x="12" y="6" width="2" height="2"/>
+                        <rect x="2" y="8" width="12" height="2"/><rect x="4" y="10" width="8" height="2"/>
+                        <rect x="4" y="12" width="3" height="3"/><rect x="9" y="12" width="3" height="3"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-pixel text-xs sm:text-sm text-[var(--accent-cyan)] tracking-wider">STEVEN ATAUCHI</h1>
+                    <p class="text-[10px] text-gray-400 font-pixel mt-1">SMW PIXEL ART / ASM / ROMHACKING</p>
+                </div>
+            </div>
+
+            <!-- Navegación -->
+            <nav class="flex flex-wrap gap-2 text-xs font-pixel">
+                <button onclick="switchTab('home')" id="tab-btn-home" class="pixel-btn active px-3 py-2 rounded-none" data-i18n="nav_about"></button>
+                <button onclick="switchTab('commissions')" id="tab-btn-commissions" class="pixel-btn px-3 py-2 rounded-none" data-i18n="nav_comm"></button>
+                <button onclick="switchTab('progress')" id="tab-btn-progress" class="pixel-btn px-3 py-2 rounded-none" data-i18n="nav_progress"></button>
+                <button onclick="switchTab('gallery')" id="tab-btn-gallery" class="pixel-btn px-3 py-2 rounded-none" data-i18n="nav_gallery"></button>
+                <button onclick="switchTab('contact')" id="tab-btn-contact" class="pixel-btn px-3 py-2 rounded-none" data-i18n="nav_contact"></button>
+            </nav>
+
+            <!-- Idioma + Paleta -->
+            <div class="flex items-center gap-3">
+                <div class="flex gap-1 font-pixel text-[10px]" role="group" aria-label="Language">
+                    <button id="lang-es" onclick="applyLang('es')" class="lang-btn pixel-btn px-2 py-1" aria-label="Español">ES</button>
+                    <button id="lang-en" onclick="applyLang('en')" class="lang-btn pixel-btn px-2 py-1" aria-label="English">EN</button>
+                    <button id="lang-pt" onclick="applyLang('pt')" class="lang-btn pixel-btn px-2 py-1" aria-label="Português">PT</button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] hidden sm:inline text-gray-400" data-i18n="palette"></span>
+                    <select id="themeSelect" onchange="changeTheme(this.value)" class="bg-[var(--bg-card)] border-2 border-[var(--border-inner)] text-[10px] font-pixel p-1 text-[var(--text-main)] outline-none cursor-pointer">
+                        <option value="snes">SNES DARK</option>
+                        <option value="gb">GAMEBOY</option>
+                        <option value="cyber">CYBERPUNK</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- ================= TAB: ABOUT ================= -->
+        <section id="tab-home" class="tab-content space-y-6">
+            <div class="pixel-box p-6 relative overflow-hidden">
+                <div class="flex flex-col md:flex-row gap-6 items-center">
+                    <div class="w-32 h-32 flex-shrink-0 bg-black/40 border-4 border-[var(--border-inner)] flex items-center justify-center relative overflow-hidden">
+                        <img data-avatar alt="Steven Atauchi" class="w-full h-full object-cover pixel-img"
+                             onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                        <svg class="hidden w-24 h-24 text-[var(--accent-main)] fill-current" viewBox="0 0 16 16" aria-hidden="true">
+                            <rect x="5" y="1" width="6" height="1"/><rect x="4" y="2" width="8" height="2"/>
+                            <rect x="3" y="4" width="10" height="2"/><rect x="3" y="6" width="3" height="2"/>
+                            <rect x="10" y="6" width="3" height="2"/><rect x="3" y="8" width="10" height="1"/>
+                            <rect x="4" y="9" width="8" height="2"/><rect x="2" y="11" width="12" height="2"/>
+                            <rect x="1" y="13" width="14" height="2"/>
+                        </svg>
+                        <span class="absolute bottom-1 right-1 text-[8px] bg-[var(--accent-main)] text-black px-1 font-pixel">LVL 99</span>
+                    </div>
+
+                    <div class="space-y-3 text-center md:text-left">
+                        <div class="inline-block px-2 py-1 bg-[var(--border-outer)] text-[10px] font-pixel text-[var(--accent-yellow)]" data-i18n="hero_tag"></div>
+                        <h2 class="text-xl sm:text-2xl font-pixel text-[var(--accent-cyan)]" data-i18n="hero_title"></h2>
+                        <p class="text-sm leading-relaxed text-gray-300" data-i18n="hero_desc"></p>
+
+                        <!-- Estado de comisiones -->
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 justify-center md:justify-start pt-1">
+                            <span class="text-xs bg-[var(--accent-green)] text-black px-2 py-1 font-pixel font-bold inline-block" data-i18n="status_open"></span>
+                            <div class="flex items-center gap-2 justify-center md:justify-start">
+                                <div class="slots-bar flex gap-[2px]" aria-hidden="true"></div>
+                                <span class="slots-text text-[10px] font-pixel text-gray-300"></span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 justify-center md:justify-start pt-2">
+                            <button onclick="switchTab('commissions')" class="pixel-btn px-4 py-2 text-xs font-pixel bg-[var(--accent-main)] text-black font-bold" data-i18n="btn_order"></button>
+                            <button onclick="switchTab('gallery')" class="pixel-btn px-4 py-2 text-xs font-pixel" data-i18n="btn_gallery_view"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presentación: OC jugable -->
+            <div class="pixel-box p-5">
+                <div class="pixel-box-header -mx-5 -mt-5 p-3 mb-4 flex items-center gap-2">
+                    <span class="text-[var(--accent-yellow)]">▶</span>
+                    <h3 class="font-pixel text-xs text-[var(--accent-cyan)] leading-relaxed" data-i18n="oc_title"></h3>
+                </div>
+                <p class="text-xs text-gray-300 leading-relaxed mb-4" data-i18n="oc_intro"></p>
+                <ul class="space-y-3 text-xs mb-4">
+                    <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                        <div class="leading-relaxed"><strong class="text-[var(--text-main)]" data-i18n="oc_a_t"></strong> <span class="text-gray-300" data-i18n="oc_a_d"></span></div></li>
+                    <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                        <div class="leading-relaxed"><strong class="text-[var(--text-main)]" data-i18n="oc_b_t"></strong> <span class="text-gray-300" data-i18n="oc_b_d"></span></div></li>
+                </ul>
+                <p class="text-xs text-[var(--accent-yellow)] leading-relaxed" data-i18n="oc_end"></p>
+            </div>
+
+            <!-- Sobre mí / Por qué abrí comisiones -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="pixel-box p-5">
+                    <div class="pixel-box-header -mx-5 -mt-5 p-3 mb-4 flex items-center gap-2">
+                        <span class="text-[var(--accent-yellow)]">▶</span>
+                        <h3 class="font-pixel text-xs text-[var(--accent-cyan)]" data-i18n="about_title"></h3>
+                    </div>
+                    <div class="space-y-3 text-xs text-gray-300 leading-relaxed">
+                        <p data-i18n="about_p1"></p>
+                        <p data-i18n="about_p2"></p>
+                    </div>
+                </div>
+                <div class="pixel-box p-5">
+                    <div class="pixel-box-header -mx-5 -mt-5 p-3 mb-4 flex items-center gap-2">
+                        <span class="text-[var(--accent-yellow)]">▶</span>
+                        <h3 class="font-pixel text-xs text-[var(--accent-cyan)]" data-i18n="why_title"></h3>
+                    </div>
+                    <div class="space-y-3 text-xs text-gray-300 leading-relaxed">
+                        <p data-i18n="why_p1"></p>
+                        <p data-i18n="why_p2"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Servicios & Especialidades -->
+                <div class="pixel-box p-5">
+                    <div class="pixel-box-header -mx-5 -mt-5 p-3 mb-4 flex items-center gap-2">
+                        <span class="text-[var(--accent-yellow)]">▶</span>
+                        <h3 class="font-pixel text-xs text-[var(--accent-cyan)]" data-i18n="srv_title"></h3>
+                    </div>
+                    <ul class="space-y-3 text-xs">
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div><strong class="text-[var(--text-main)]" data-i18n="srv1_t"></strong> <span class="text-gray-300" data-i18n="srv1_d"></span></div></li>
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div><strong class="text-[var(--text-main)]" data-i18n="srv2_t"></strong> <span class="text-gray-300" data-i18n="srv2_d"></span></div></li>
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div><strong class="text-[var(--text-main)]" data-i18n="srv3_t"></strong> <span class="text-gray-300" data-i18n="srv3_d"></span></div></li>
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div><strong class="text-[var(--text-main)]" data-i18n="srv4_t"></strong> <span class="text-gray-300" data-i18n="srv4_d"></span></div></li>
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div><strong class="text-[var(--text-main)]" data-i18n="srv5_t"></strong> <span class="text-gray-300" data-i18n="srv5_d"></span></div></li>
+                    </ul>
+                </div>
+
+                <!-- Herramientas -->
+                <div class="pixel-box p-5">
+                    <div class="pixel-box-header -mx-5 -mt-5 p-3 mb-4 flex items-center gap-2">
+                        <span class="text-[var(--accent-yellow)]">▶</span>
+                        <h3 class="font-pixel text-xs text-[var(--accent-cyan)]" data-i18n="tk_title"></h3>
+                    </div>
+                    <div class="space-y-3 text-xs">
+                        <!-- EDITA AQUÍ tus herramientas -->
+                        <div class="p-2 bg-black/30 border border-[var(--border-inner)]">
+                            <div class="text-[var(--accent-yellow)] font-pixel text-[10px] mb-1" data-i18n="tk_art"></div>
+                            <p class="text-gray-300" data-i18n="tk_art_v"></p>
+                        </div>
+                        <div class="p-2 bg-black/30 border border-[var(--border-inner)]">
+                            <div class="text-[var(--accent-yellow)] font-pixel text-[10px] mb-1" data-i18n="tk_code"></div>
+                            <p class="text-gray-300">ASM 65816 (SNES)</p>
+                        </div>
+                        <div class="p-2 bg-black/30 border border-[var(--border-inner)]">
+                            <div class="text-[var(--accent-yellow)] font-pixel text-[10px] mb-1" data-i18n="tk_tools"></div>
+                            <p class="text-gray-300">Lunar Magic, Asar, UberASM Tool, GPS</p>
+                        </div>
+                        <div class="p-2 bg-black/30 border border-[var(--border-inner)]">
+                            <div class="text-[var(--accent-yellow)] font-pixel text-[10px] mb-1" data-i18n="tk_compat"></div>
+                            <p class="text-gray-300">LoROM · SA-1</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: COMMISSIONS ================= -->
+        <section id="tab-commissions" class="tab-content hidden space-y-6">
+
+            <!-- Calculadora -->
+            <div class="pixel-box p-6">
+                <div class="pixel-box-header -mx-6 -mt-6 p-4 mb-6">
+                    <h2 class="font-pixel text-sm text-[var(--accent-yellow)]" data-i18n="calc_title"></h2>
+                    <p class="text-xs text-gray-400 mt-1" data-i18n="calc_sub"></p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-6 text-xs">
+
+                        <!-- Tipo de encargo -->
+                        <div>
+                            <div class="font-pixel text-[var(--accent-cyan)] mb-2" data-i18n="cat_label"></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="cat" value="player" checked onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="cat_player"></div><div class="text-[9px] text-gray-400" data-i18n="h_player"></div></div></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="cat" value="abilities" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="cat_abilities"></div><div class="text-[9px] text-gray-400" data-i18n="h_abilities"></div></div></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="cat" value="gfx" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="cat_gfx"></div><div class="text-[9px] text-gray-400" data-i18n="h_gfx"></div></div></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="cat" value="uber" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="cat_uber"></div><div class="text-[9px] text-gray-400" data-i18n="h_uber"></div></div></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="cat" value="gps" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="cat_gps"></div><div class="text-[9px] text-gray-400" data-i18n="h_gps"></div></div></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="cat" value="asar" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="cat_asar"></div><div class="text-[9px] text-gray-400" data-i18n="h_asar"></div></div></label>
+                            </div>
+                        </div>
+
+                        <!-- Player: referencias -->
+                        <div id="g-ref">
+                            <div class="font-pixel text-[var(--accent-cyan)] mb-2" data-i18n="ref_label"></div>
+                            <div class="space-y-2">
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="ref" value="r1" checked onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div class="flex-1"><span data-i18n="ref1"></span></div><span class="font-pixel text-[10px] text-[var(--accent-yellow)]">7–8 h · $75</span></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="ref" value="r2" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div class="flex-1"><span data-i18n="ref2"></span></div><span class="font-pixel text-[10px] text-[var(--accent-yellow)]">15 h · $150</span></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="ref" value="r3" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div class="flex-1"><span data-i18n="ref3"></span></div><span class="font-pixel text-[10px] text-[var(--accent-yellow)]">20 h · $200</span></label>
+                            </div>
+                            <p class="mt-2 text-[10px] text-[var(--accent-green)]" data-i18n="incl_note"></p>
+                        </div>
+
+                        <!-- Extras del player -->
+                        <div id="g-addons">
+                            <div class="font-pixel text-[var(--accent-cyan)] mb-2" data-i18n="addons_label"></div>
+                            <div class="space-y-2">
+                                <!-- Animaciones custom -->
+                                <div class="opt p-3 flex items-center gap-3 cursor-default">
+                                    <div class="flex-1"><span data-i18n="anim_label"></span><div class="text-[9px] text-gray-400" data-i18n="anim_hint"></div></div>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="step('anims',-1)" class="pixel-btn stepper-btn font-pixel" aria-label="-">−</button>
+                                        <span id="q-anims" class="font-pixel w-6 text-center">0</span>
+                                        <button type="button" onclick="step('anims',1)" class="pixel-btn stepper-btn font-pixel" aria-label="+">+</button>
+                                    </div>
+                                </div>
+                                <!-- Habilidad especial -->
+                                <div class="opt p-3 cursor-default">
+                                    <div class="mb-2" data-i18n="ability_label"></div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <label class="opt p-2 flex items-center gap-2"><input type="radio" name="ability" value="none" checked onchange="calculateQuote()" class="accent-[var(--accent-main)]"><span data-i18n="ab_none"></span></label>
+                                        <label class="opt p-2 flex items-center gap-2"><input type="radio" name="ability" value="plain" onchange="calculateQuote()" class="accent-[var(--accent-main)]"><span><span data-i18n="ab_plain"></span><span class="block text-[9px] text-gray-400">4 h · $40</span></span></label>
+                                        <label class="opt p-2 flex items-center gap-2"><input type="radio" name="ability" value="anim" onchange="calculateQuote()" class="accent-[var(--accent-main)]"><span><span data-i18n="ab_anim"></span><span class="block text-[9px] text-gray-400">6 h · $60</span></span></label>
+                                    </div>
+                                </div>
+                                <!-- Modificar poder -->
+                                <div class="opt p-3 flex items-center gap-3 cursor-default">
+                                    <div class="flex-1"><span data-i18n="mod_label"></span><div class="text-[9px] text-gray-400" data-i18n="mod_hint"></div></div>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="step('mods',-1)" class="pixel-btn stepper-btn font-pixel" aria-label="-">−</button>
+                                        <span id="q-mods" class="font-pixel w-6 text-center">0</span>
+                                        <button type="button" onclick="step('mods',1)" class="pixel-btn stepper-btn font-pixel" aria-label="+">+</button>
+                                    </div>
+                                </div>
+                                <!-- Poder nuevo -->
+                                <label class="opt p-3 flex items-center gap-2"><input type="checkbox" id="opt-newpower" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div class="flex-1"><span data-i18n="newp_label"></span></div><span class="font-pixel text-[10px] text-[var(--accent-yellow)]">10 h · $100</span></label>
+                                <label class="opt p-3 flex items-center gap-2 ml-4" id="lbl-proj"><input type="checkbox" id="opt-proj" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div class="flex-1"><span data-i18n="proj_label"></span></div><span class="font-pixel text-[10px] text-[var(--accent-yellow)]">+5 h · +$50</span></label>
+                            </div>
+                        </div>
+
+                        <!-- Gráficos -->
+                        <div id="g-gfx" class="hidden">
+                            <div class="opt p-3 flex items-center gap-3 cursor-default">
+                                <div class="flex-1"><span data-i18n="gfx_label"></span><div class="text-[9px] text-gray-400" data-i18n="gfx_hint"></div></div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="step('gfx',-1)" class="pixel-btn stepper-btn font-pixel" aria-label="-">−</button>
+                                    <span id="q-gfx" class="font-pixel w-6 text-center">1</span>
+                                    <button type="button" onclick="step('gfx',1)" class="pixel-btn stepper-btn font-pixel" aria-label="+">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- UberASM -->
+                        <div id="g-uber" class="hidden">
+                            <div class="font-pixel text-[var(--accent-cyan)] mb-2" data-i18n="uber_label"></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="uber" value="player" checked onchange="calculateQuote()" class="accent-[var(--accent-main)]"><span><span data-i18n="u_player"></span><span class="block text-[9px] text-gray-400">5 h · $50</span></span></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="uber" value="level" onchange="calculateQuote()" class="accent-[var(--accent-main)]"><span><span data-i18n="u_level"></span><span class="block text-[9px] text-gray-400">5 h · $50</span></span></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="uber" value="other" onchange="calculateQuote()" class="accent-[var(--accent-main)]"><span><span data-i18n="u_other"></span><span class="block text-[9px] text-gray-400" data-i18n="h_tbd"></span></span></label>
+                            </div>
+                        </div>
+
+                        <!-- GPS -->
+                        <div id="g-gps" class="hidden">
+                            <div class="opt p-3 flex items-center gap-3 cursor-default">
+                                <div class="flex-1"><span data-i18n="gps_label"></span><div class="text-[9px] text-gray-400">$30</div></div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="step('gps',-1)" class="pixel-btn stepper-btn font-pixel" aria-label="-">−</button>
+                                    <span id="q-gps" class="font-pixel w-6 text-center">1</span>
+                                    <button type="button" onclick="step('gps',1)" class="pixel-btn stepper-btn font-pixel" aria-label="+">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ASAR -->
+                        <div id="g-asar" class="hidden">
+                            <p class="p-3 border-2 border-[var(--accent-yellow)] text-[var(--accent-yellow)]" data-i18n="asar_note"></p>
+                        </div>
+
+                        <!-- Visibilidad -->
+                        <div>
+                            <div class="font-pixel text-[var(--accent-cyan)] mb-2" data-i18n="vis_label"></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="vis" value="public" checked onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="vis_public"></div><div class="text-[9px] text-gray-400" data-i18n="vis_public_d"></div></div></label>
+                                <label class="opt p-3 flex items-center gap-2"><input type="radio" name="vis" value="anon" onchange="calculateQuote()" class="accent-[var(--accent-main)]">
+                                    <div><div class="font-pixel text-[10px]" data-i18n="vis_anon"></div><div class="text-[9px] text-gray-400" data-i18n="vis_anon_d"></div></div></label>
+                            </div>
+                            <p class="mt-2 text-[10px] text-gray-400" data-i18n="vis_note"></p>
+                        </div>
+
+                        <!-- Datos opcionales -->
+                        <div class="grid grid-cols-1 gap-3">
+                            <label class="block">
+                                <span class="font-pixel text-[10px] text-[var(--accent-cyan)]" data-i18n="discord_label"></span>
+                                <input id="in-discord" type="text" maxlength="60" class="mt-1 w-full bg-black/40 border-2 border-[var(--border-inner)] p-2 text-[var(--text-main)] outline-none">
+                            </label>
+                            <label class="block">
+                                <span class="font-pixel text-[10px] text-[var(--accent-cyan)]" data-i18n="notes_label"></span>
+                                <textarea id="in-notes" rows="3" maxlength="600" class="mt-1 w-full bg-black/40 border-2 border-[var(--border-inner)] p-2 text-[var(--text-main)] outline-none"></textarea>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Factura -->
+                    <div class="bg-black/50 border-2 border-[var(--border-inner)] p-4 flex flex-col justify-between self-start lg:sticky lg:top-28">
+                        <div>
+                            <h3 class="font-pixel text-xs text-[var(--accent-main)] border-b border-[var(--border-outer)] pb-2 mb-3" data-i18n="sum_title"></h3>
+                            <div id="quote-breakdown" class="space-y-2 text-xs text-gray-300"></div>
+                        </div>
+
+                        <div class="mt-6 border-t-2 border-[var(--border-outer)] pt-4">
+                            <div class="text-[10px] font-pixel text-gray-400" data-i18n="total_label"></div>
+                            <div id="quote-total" class="text-2xl font-pixel text-[var(--accent-green)] my-1">$0 USD</div>
+                            <div id="quote-pending" class="hidden text-[10px] text-[var(--accent-yellow)] mb-2" data-i18n="pending_note"></div>
+                            <div class="text-[10px] text-gray-400"><span data-i18n="hours_label"></span>: <span id="quote-hours">—</span></div>
+                            <div class="text-[10px] text-gray-400 mb-4"><span data-i18n="deposit_label"></span>: <span id="quote-deposit">$0.00</span></div>
+                            <button onclick="copyCommissionRequest()" class="w-full pixel-btn py-3 font-pixel text-xs bg-[var(--accent-yellow)] text-black font-bold" data-i18n="copy_btn"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pixel-box p-6">
+                <div class="pixel-box-header -mx-6 -mt-6 p-4 mb-4 flex flex-wrap gap-3 justify-between items-center">
+                    <h2 class="font-pixel text-sm text-[var(--accent-cyan)]" data-i18n="terms_title"></h2>
+                    <div class="flex items-center gap-3">
+                        <div class="slots-bar flex gap-[2px]" aria-hidden="true"></div>
+                        <span class="slots-text text-[10px] font-pixel text-gray-300"></span>
+                        <span class="text-xs bg-[var(--accent-green)] text-black px-2 py-0.5 font-pixel font-bold" data-i18n="status_open"></span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[var(--accent-yellow)] mb-2" data-i18n="t1_h"></h3>
+                        <p class="text-gray-300 leading-relaxed" data-i18n="t1_p"></p>
+                    </div>
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[var(--accent-yellow)] mb-2" data-i18n="t2_h"></h3>
+                        <p class="text-gray-300 leading-relaxed" data-i18n="t2_p"></p>
+                    </div>
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[var(--accent-yellow)] mb-2" data-i18n="t3_h"></h3>
+                        <p class="text-gray-300 leading-relaxed" data-i18n="t3_p"></p>
+                    </div>
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[var(--accent-yellow)] mb-2" data-i18n="t4_h"></h3>
+                        <p class="text-gray-300 leading-relaxed" data-i18n="t4_p"></p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Términos de Servicio y Descargo de Responsabilidad -->
+            <div class="pixel-box p-6">
+                <div class="pixel-box-header -mx-6 -mt-6 p-4 mb-4">
+                    <h2 class="font-pixel text-sm text-[var(--accent-cyan)] leading-relaxed" data-i18n="dis_title"></h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[10px] text-[var(--accent-yellow)] mb-3 leading-relaxed" data-i18n="dis1_h"></h3>
+                        <ul class="space-y-3 text-xs">
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div class="leading-relaxed"><strong class="text-[var(--text-main)]" data-i18n="dis1_a_t"></strong> <span class="text-gray-300" data-i18n="dis1_a_d"></span></div></li>
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div class="leading-relaxed"><strong class="text-[var(--text-main)]" data-i18n="dis1_b_t"></strong> <span class="text-gray-300" data-i18n="dis1_b_d"></span></div></li>
+                        </ul>
+                    </div>
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[10px] text-[var(--accent-yellow)] mb-3 leading-relaxed" data-i18n="dis2_h"></h3>
+                        <ul class="space-y-3 text-xs">
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div class="leading-relaxed"><strong class="text-[var(--text-main)]" data-i18n="dis2_a_t"></strong> <span class="text-gray-300" data-i18n="dis2_a_d"></span></div></li>
+                        </ul>
+                    </div>
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[10px] text-[var(--accent-yellow)] mb-3 leading-relaxed" data-i18n="dis3_h"></h3>
+                        <ul class="space-y-3 text-xs">
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div class="leading-relaxed"><strong class="text-[var(--text-main)]" data-i18n="dis3_a_t"></strong> <span class="text-gray-300" data-i18n="dis3_a_d"></span></div></li>
+                        </ul>
+                    </div>
+                    <div class="p-3 bg-black/30 border border-[var(--border-inner)]">
+                        <h3 class="font-pixel text-[10px] text-[var(--accent-yellow)] mb-3 leading-relaxed" data-i18n="dis4_h"></h3>
+                        <ul class="space-y-3 text-xs">
+                        <li class="flex items-start gap-2"><span class="text-[var(--accent-main)]">■</span>
+                            <div class="leading-relaxed"><strong class="text-[var(--text-main)]" data-i18n="dis4_a_t"></strong> <span class="text-gray-300" data-i18n="dis4_a_d"></span></div></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: IN PROGRESS ================= -->
+        <section id="tab-progress" class="tab-content hidden space-y-8">
+            <div>
+                <div class="pixel-box p-5 mb-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-pixel text-sm text-[var(--accent-cyan)]" data-i18n="prog_title"></h2>
+                            <p class="text-xs text-gray-400 mt-1" data-i18n="prog_sub"></p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="slots-bar flex gap-[2px]" aria-hidden="true"></div>
+                            <span class="slots-text text-[10px] font-pixel text-gray-300"></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="active-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Finalizadas (separadas de las activas) -->
+            <div>
+                <div class="pixel-box p-5 mb-4 border-[var(--accent-green)]">
+                    <h2 class="font-pixel text-sm text-[var(--accent-green)]" data-i18n="fin_title"></h2>
+                    <p class="text-xs text-gray-400 mt-1" data-i18n="fin_sub"></p>
+                </div>
+                <div id="finished-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: GALLERY ================= -->
+        <section id="tab-gallery" class="tab-content hidden space-y-6">
+            <div class="pixel-box p-5">
+                <h2 class="font-pixel text-sm text-[var(--accent-cyan)]" data-i18n="gal_title"></h2>
+                <p class="text-xs text-gray-400 mt-1" data-i18n="gal_sub"></p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs font-pixel">
+                <button onclick="filterGallery('all', this)" class="gal-filter-btn pixel-btn active px-3 py-1" data-i18n="f_all"></button>
+                <button onclick="filterGallery('player', this)" class="gal-filter-btn pixel-btn px-3 py-1" data-i18n="f_player"></button>
+                <button onclick="filterGallery('gfx', this)" class="gal-filter-btn pixel-btn px-3 py-1" data-i18n="f_gfx"></button>
+                <button onclick="filterGallery('resource', this)" class="gal-filter-btn pixel-btn px-3 py-1" data-i18n="f_res"></button>
+            </div>
+            <div id="gallery-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+        <!-- ================= TAB: CONTACT ================= -->
+        <section id="tab-contact" class="tab-content hidden space-y-6">
+            <div class="pixel-box p-6">
+                <div class="pixel-box-header -mx-6 -mt-6 p-4 mb-4">
+                    <h2 class="font-pixel text-sm text-[var(--accent-cyan)]" data-i18n="con_title"></h2>
+                    <p class="text-xs text-gray-400 mt-1" data-i18n="con_sub"></p>
+                </div>
+                <div id="contact-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"></div>
+            </div>
+
+            <div class="pixel-box p-6">
+                <h3 class="font-pixel text-xs text-[var(--accent-yellow)] mb-4" data-i18n="how_title"></h3>
+                <ol class="space-y-3 text-xs text-gray-300">
+                    <li class="flex gap-3"><span class="font-pixel text-[var(--accent-main)]">1</span><span data-i18n="how1"></span></li>
+                    <li class="flex gap-3"><span class="font-pixel text-[var(--accent-main)]">2</span><span data-i18n="how2"></span></li>
+                    <li class="flex gap-3"><span class="font-pixel text-[var(--accent-main)]">3</span><span data-i18n="how3"></span></li>
+                    <li class="flex gap-3"><span class="font-pixel text-[var(--accent-main)]">4</span><span data-i18n="how4"></span></li>
+                </ol>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t-4 border-[var(--border-outer)] bg-[var(--bg-main)] py-6 mt-12">
+        <div class="max-w-5xl mx-auto px-4 text-center font-pixel text-[10px] space-y-2 text-gray-400">
+            <p data-i18n="footer"></p>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed bottom-6 right-6 hidden z-50 pixel-box p-4 bg-[var(--accent-yellow)] text-black font-pixel text-xs shadow-2xl" role="status">
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+        /* ===================================================================
+           ★ CONFIGURACIÓN PERSONALIZABLE — EDITA ESTA SECCIÓN ★
+           =================================================================== */
+        const CONFIG = {
+            avatar: "https://i.imgur.com/Z2QBUxO.gif",
+            totalSlots: 20,          // Slots totales. Los ocupados = nº de comisiones activas.
+            defaultLang: "es"
+        };
+
+        // Contacto: cambia value y href por tus datos reales (href vacío = sin enlace)
+        const CONTACTS = [
+            { label: "Discord",   value: "Steven_Atauchi#1103",                 href: "" },
+            { label: "Email",     value: "stevenatauchi20@gmail.com",              href: "mailto:stevenatauchi20@gmail.com" },
+            { label: "Twitch",    value: "twitch.tv/steven_atauchi",            href: "https://www.twitch.tv/steven_atauchi" },
+            { label: "SMWCentral",value: "smwcentral.net (Steven Atauchi C.)",  href: "https://www.smwcentral.net/?p=profile&id=64208" },
+            { label: "PayPal",    value: "paypal",                              href: "https://www.paypal.com/paypalme/StevenAtauchi" },
+            { label: "YouTube",   value: "youtube.com/@Steven_Atauchi",         href: "https://www.youtube.com/@stevenatauchi" }
+        ];
+
+        // Comisiones EN CURSO (ejemplos). stage: 0 inicial · 1 bocetos · 2 diseño · 3 avanzado
+        // type: player | abilities | gfx | uber | gps | asar   ·  anonymous: true oculta los detalles
+        const ACTIVE = [
+            { id: "c1", name: "The ARMster",          type: "player", start: "2026-08-02", stage: 2, anonymous: false },
+            { id: "c2", name: "SMB3 Custom Powerups", type: "player", start: "2026-08-05", stage: 3, anonymous: false },
+            { id: "c3", name: "",                     type: "player", start: "2026-09-02", stage: 0, anonymous: true  },
+
+        ];
+
+        // Comisiones FINALIZADAS. galleryId enlaza con un elemento de GALLERY
+        const FINISHED = [
+            { id: "f1", name: "Violet",                          type: "player", start: "2026-05-24", end: "2026-06-13", galleryId: "g1" },
+            { id: "f2", name: "Gliding Parachute",               type: "uber",   start: "2026-04-07", end: "2026-06-07", galleryId: "g2" },
+            { id: "f3", name: "Super Star With Coins",           type: "uber",   start: "2026-04-07", end: "2026-06-07", galleryId: "g3" },
+            { id: "f4", name: "Super Peach World",               type: "player", start: "2026-05-07", end: "2026-05-24", galleryId: "g4" },
+            { id: "f5", name: "Yoshi's Island - Peach version",  type: "player", start: "2026-06-20", end: "2026-07-04", galleryId: "g5" },
+            { id: "f6", name: "Venus",                           type: "player", start: "2026-04-09", end: "2026-05-05", galleryId: "g6" },
+            { id: "f7", name: "Greñudo",                         type: "player", start: "2026-05-10", end: "2026-06-01", galleryId: "g7" }
+        ];
+
+        // Galería. category: player | gfx | resource · image: URL (vacío = placeholder)
+        // link: botón "Ver más" (opcional) · download: botón "Descargar" (opcional, sin enlace = sin botón)
+        const GALLERY = [
+            { id: "g1", title: "Violet", category: "player", date: "2026-06-13",
+              image: "https://pbs.twimg.com/media/HKvHOiQW0AEnPAT?format=jpg&name=large",
+              link: "https://x.com/StevenAtauchi/status/2065965424940872172?s=20",
+              download: "", // <- pega aquí el enlace de descarga; si lo dejas vacío no aparece el botón
+              desc: { es: "Player completo: small, grande, capa, fuego y mini de overworld.", en: "Full player: small, big, cape, fire and overworld mini.", pt: "Player completo: small, grande, capa, fogo e mini do overworld." } },
+
+            { id: "g2", title: "Gliding Parachute (UberASM)", category: "resource", date: "2026-06-07",
+              image: "https://dl.smwcentral.net/image/125496.gif",
+              link: "https://smwc.me/s/42724",
+              download: "", // <- pega aquí el enlace de descarga; si lo dejas vacío no aparece el botón
+              desc: { es: "Recurso UberASM con soporte LoROM y SA-1.", en: "UberASM resource with LoROM and SA-1 support.", pt: "Recurso UberASM com suporte a LoROM e SA-1." } },
+
+            { id: "g3", title: "Super Star With Coins (UberASM)", category: "resource", date: "2026-06-07",
+              image: "https://dl.smwcentral.net/image/124396.gif",
+              link: "https://smwc.me/s/42506",
+              download: "", // <- pega aquí el enlace de descarga; si lo dejas vacío no aparece el botón
+              desc: { es: "Recurso UberASM con soporte LoROM y SA-1.", en: "UberASM resource with LoROM and SA-1 support.", pt: "Recurso UberASM com suporte a LoROM e SA-1." } },
+
+            { id: "g4", title: "Super Peach World", category: "player", date: "2026-05-24",
+              image: "https://i.imgur.com/05xzb5j.png",
+              link: "https://smwc.me/t/132572",
+              download: "", // <- pega aquí el enlace de descarga; si lo dejas vacío no aparece el botón
+              desc: { es: "Player completo: small, grande, capa, fuego y mini de overworld.", en: "Full player: small, big, cape, fire and overworld mini.", pt: "Player completo: small, grande, capa, fogo e mini do overworld." } },
+
+            { id: "g5", title: "Yoshi's Island - Peach version", category: "player", date: "2026-07-04",
+              image: "https://i.imgur.com/ZX7KcNq.png",
+              link: "https://x.com/StevenAtauchi/status/2073409101866914131?s=20",
+              download: "", // <- pega aquí el enlace de descarga; si lo dejas vacío no aparece el botón
+              desc: { es: "Player completo para Yoshi's Island.", en: "Full player for Yoshi's Island.", pt: "Player completo para Yoshi's Island." } },
+
+            { id: "g6", title: "Venus", category: "player", date: "2026-05-05",
+              image: "https://i.imgur.com/5Bl3OHb.png",
+              link: "https://x.com/StevenAtauchi/status/2051778134924529740?s=20",
+              download: "", // <- pega aquí el enlace de descarga; si lo dejas vacío no aparece el botón
+              desc: { es: "Player completo: small, grande, capa, fuego y mini de overworld.", en: "Full player: small, big, cape, fire and overworld mini.", pt: "Player completo: small, grande, capa, fogo e mini do overworld." } },
+
+            { id: "g7", title: "Greñudo", category: "player", date: "2026-06-01",
+              image: "https://dl.smwcentral.net/image/120830.png",
+              link: "https://smwc.me/s/41387",
+              download: "", // <- pega aquí el enlace de descarga; si lo dejas vacío no aparece el botón
+              desc: { es: "Player completo: small, grande, capa, fuego y mini de overworld.", en: "Full player: small, big, cape, fire and overworld mini.", pt: "Player completo: small, grande, capa, fogo e mini do overworld." } }
+        ];
+
+        /* ===================================================================
+           TEXTOS (ES / EN / PT)
+           =================================================================== */
+        const LOCALES = { es: "es-ES", en: "en-US", pt: "pt-BR" };
+        const I18N = {
+        es: {
+            nav_about: "SOBRE MÍ", nav_comm: "COMISIONES", nav_progress: "EN CURSO", nav_gallery: "GALERÍA", nav_contact: "CONTACTO",
+            palette: "PALETA:",
+            hero_tag: "★ ARTISTA PIXELART & ROMHACKER DE SMW",
+            hero_title: "¡HOLA! BIENVENIDO A MI SITIO WEB.",
+            hero_desc: "Soy Steven Atauchi, romhacker de Super Mario World, programador en ASM, diseñador gráfico y artista de pixel art. Me especializo en crear recursos, entornos y personajes personalizados para SMW. Si buscas llevar tu hack al siguiente nivel con código UberASM, parches para Asar o bloques personalizados para GPS, estás en el lugar indicado.",
+            oc_title: "¿QUIERES QUE TU OC SEA 100% JUGABLE AL ESTILO SMW?",
+            oc_intro: "¡Es hora de hacer rendir tu creatividad! Puedo adaptar a tu personaje original para que cobre vida dentro del juego con:",
+            oc_a_t: "Animaciones personalizadas:",
+            oc_a_d: "Desde el estilo clásico vanilla de SMW hasta movimientos, expresiones y animaciones totalmente adaptadas a tu gusto.",
+            oc_b_t: "Habilidades y Power-ups únicos:",
+            oc_b_d: "Hago posible que tu personaje cuente con poderes y mecánicas de juego exclusivas para que destaque al máximo.",
+            oc_end: "Hay un mundo infinito de posibilidades para hacer que tu player juegue y se sienta de forma única.",
+            about_title: "UN POCO MÁS SOBRE MÍ",
+            about_p1: "Tengo 20 años y soy apasionado del romhacking de Super Mario World. He dedicado años a estudiar las tripas del juego para crear contenido de alta calidad. Actualmente me encuentro desarrollando mi propio proyecto principal: SMW Mix, un hack bastante ambicioso que incluye nuevos bosses, 4 personajes jugables y múltiples custom power-ups.",
+            about_p2: "Además del desarrollo en ASM y pixel art, disfruto mucho del dibujo tradicional y digital, y suelo hacer transmisiones en Twitch donde muestro el proceso de trabajo en comisiones o juego con amigos.",
+            why_title: "¿POR QUÉ ABRÍ COMISIONES?",
+            why_p1: "Abrí esta sección principalmente para costear mis gastos personales, mantenerme al día con mis cuentas y continuar mis estudios universitarios para cumplir mi meta de graduarme como Ingeniero.",
+            why_p2: "Agradezco enormemente a cada persona que confía en mi trabajo para dar vida a sus proyectos; cada comisión marca una gran diferencia. Si tienes una idea en mente para tu hack o tu personaje, ¡no dudes en contactarme!",
+            dis_title: "TÉRMINOS DE SERVICIO Y DESCARGO DE RESPONSABILIDAD (DISCLAIMER)",
+            dis1_h: "1. Naturaleza del Servicio y Propiedad Intelectual",
+            dis1_a_t: "Servicio de Diseño Creativo y Programación:",
+            dis1_a_d: "Los servicios ofrecidos en este sitio web consisten exclusivamente en la creación de arte original en pixel art, programación de código en lenguaje ensamblador (ASM) y el desarrollo de modificaciones técnicas personalizadas.",
+            dis1_b_t: "Ausencia de Contenido Protegido:",
+            dis1_b_d: "En ningún caso se venden, distribuyen, alquilan o facilitan copias digitales de juegos (ROMs).",
+            dis2_h: "2. Formato de Entrega",
+            dis2_a_t: "Entrega en Formato de Parche (.BPS / .IPS / .ASM):",
+            dis2_a_d: "Todo el trabajo aplicable a Super Mario World (SMW) se entrega estrictamente en formatos de parches de datos independientes (como archivos .bps) o códigos (.asm). Estos archivos contienen únicamente instrucciones de datos y código original creado desde cero; no contienen el código base del juego original.",
+            dis3_h: "3. Responsabilidad del Cliente",
+            dis3_a_t: "Aplicación Autónoma:",
+            dis3_a_d: "El proceso de aplicar el parche (.bps) a la ROM original mediante herramientas externas (como Flips) corre por cuenta del cliente. Este sitio web no proporciona ni asiste en la obtención de archivos de juego ilegales (ROMs).",
+            dis4_h: "4. Limitación de Responsabilidad y Fines de Lucro",
+            dis4_a_t: "Cobro por Mano de Obra:",
+            dis4_a_d: "Las tarifas cobradas en este sitio corresponden única y exclusivamente al tiempo de desarrollo, diseño artístico y mano de obra técnica invertida en la creación de los recursos personalizados. No se cobra por el uso, distribución o acceso a franquicias de terceros.",
+            download: "DESCARGAR",
+            status_open: "COMISIONES ABIERTAS", slots_taken: "ocupados", slots: "SLOTS",
+            btn_order: "PEDIR COMISIÓN", btn_gallery_view: "VER GALERÍA",
+            srv_title: "SERVICIOS & ESPECIALIDADES",
+            srv1_t: "Gráficos de background o foreground:", srv1_d: "para tus niveles de SMW.",
+            srv2_t: "Players personalizados:", srv2_d: "para SMW, con todas sus versiones.",
+            srv3_t: "Habilidades para tu player:", srv3_d: "poderes nuevos o modificados.",
+            srv4_t: "Animaciones personalizadas:", srv4_d: "para tu player, extra a las vanilla.",
+            srv5_t: "Recursos para SMW:", srv5_d: "código UberASM, parches para Asar o bloques para GPS.",
+            tk_title: "BASE TÉCNICA", tk_art: "ARTE", tk_art_v: "Pixelart para SMW", tk_code: "PROGRAMACIÓN", tk_tools: "HERRAMIENTAS", tk_compat: "COMPATIBILIDAD",
+            terms_title: "TÉRMINOS Y REGLAS",
+            t1_h: "1. PAGO", t1_p: "El pago es por PayPal y se cobra por hora de trabajo, documentada o transmitida en stream de Twitch si el cliente lo permite. Si no, te notifico avances constantes con fotos o videos por Discord. 50% de anticipo para comenzar y 50% al finalizar, antes de entregar los archivos finales.",
+            t2_h: "2. REVISIONES", t2_p: "Incluye revisiones menores del boceto. Los cambios estructurales se permiten en el proceso inicial. Si pides cambios a mitad del trabajo o con el trabajo terminado, tendrán un costo extra.",
+            t3_h: "3. QUÉ INCLUYE", t3_p: "Los players incluyen versión small, grande, con capa, con poder de fuego y el personaje mini del overworld, sin costo extra. Los recursos son altamente personalizables y tienen soporte para LoROM y SA-1.",
+            t4_h: "4. PRECIO Y TIEMPO", t4_p: "El precio depende de las horas de trabajo. Estas cambian según qué tan detalladas sean tus referencias y qué extras pidas. Usa la calculadora para una estimación.",
+            calc_title: "⚡ CALCULADORA DE COMISIÓN", calc_sub: "Configura tu pedido y obtén una factura estimada al instante.",
+            cat_label: "TIPO DE ENCARGO:",
+            cat_player: "PLAYER PERSONALIZADO", h_player: "desde $75",
+            cat_abilities: "HABILIDADES / ANIMACIONES", h_abilities: "para un player existente · desde $40",
+            cat_gfx: "GRÁFICO BG / FG", h_gfx: "$25 c/u",
+            cat_uber: "RECURSO UBERASM", h_uber: "desde $50",
+            cat_gps: "BLOQUE GPS", h_gps: "$30 c/u",
+            cat_asar: "PARCHE ASAR", h_asar: "precio a consultar",
+            ref_label: "REFERENCIAS DEL PERSONAJE:",
+            ref1: "Referencias muy detalladas y sprites completos de referencia", ref2: "Solo detalles estáticos y pocos sprites de referencia", ref3: "Referencias solo en dibujo digital (no pixelart)",
+            incl_note: "Incluye versión small, grande, con capa, con poder de fuego y mini del overworld, sin costo extra.",
+            addons_label: "EXTRAS DEL PLAYER:",
+            anim_label: "Animaciones custom", anim_hint: "Animaciones adicionales a las de Mario vanilla · 4 h · $40 c/u",
+            ability_label: "Habilidad especial", ab_none: "Ninguna", ab_plain: "Sin animación custom", ab_anim: "Con animación custom",
+            mod_label: "Modificar un poder", mod_hint: "Ej.: que la capa haga otra cosa o que la bola de fuego sea diferente · 5 h · $50 c/u",
+            newp_label: "Poder totalmente nuevo", proj_label: "El poder requiere un proyectil",
+            gfx_label: "Cantidad de gráficos", gfx_hint: "2–3 h · $25 c/u",
+            uber_label: "¿PARA QUÉ ES EL RECURSO UBERASM?", u_player: "Para el player", u_level: "Para un nivel", u_other: "Para otra cosa", h_tbd: "sin definir",
+            gps_label: "Cantidad de bloques GPS",
+            asar_note: "El precio de un parche para Asar no se define hasta hablar con Steven.",
+            vis_label: "VISIBILIDAD DE LA COMISIÓN:", vis_public: "PÚBLICA", vis_public_d: "Puede mostrarse al público.", vis_anon: "ANÓNIMA", vis_anon_d: "No se publica ni se muestra nada al público.",
+            vis_note: "Solo sirve para saber tu preferencia; no cambia el precio.",
+            discord_label: "TU NOMBRE / NOMBRE DE TU PERSONAJE:", notes_label: "NOTAS DEL PROYECTO (OPCIONAL):",
+            sum_title: "FACTURA ESTIMADA", sum_empty: "Elige al menos una opción para ver el desglose.",
+            total_label: "TOTAL ESTIMADO:", pending_note: "+ conceptos por definir", hours_label: "Horas estimadas", deposit_label: "Anticipo (50%)",
+            copy_btn: "COPIAR DETALLES DEL PEDIDO", toast_copied: "¡DETALLES COPIADOS!",
+            li_ref1: "Player · referencias detalladas", li_ref2: "Player · detalles estáticos", li_ref3: "Player · dibujo digital",
+            li_anim: "Animación custom", li_ab_plain: "Habilidad especial (sin animación)", li_ab_anim: "Habilidad especial (con animación)",
+            li_mod: "Modificación de poder", li_newp: "Poder totalmente nuevo", li_proj: "Proyectil del poder",
+            li_gfx: "Gráfico BG / FG", li_uber_player: "UberASM para player", li_uber_level: "UberASM para nivel", li_uber_other: "UberASM para otra cosa",
+            li_gps: "Bloque GPS", li_asar: "Parche Asar",
+            tbd: "sin definir, debe hablar con Steven", tbd_short: "por definir", TBD: "POR DEFINIR",
+            inv_head: "SOLICITUD DE COMISIÓN", inv_type: "Tipo", inv_items: "Detalle", inv_total: "Total estimado", inv_deposit: "Anticipo (50%)", inv_vis: "Visibilidad", inv_discord: "Nombre / Personaje", inv_notes: "Notas",
+            prog_title: "COMISIONES EN CURSO", prog_sub: "Ordenadas por fecha de inicio, de la más antigua a la más reciente.",
+            started: "Inicio", days_ago: "hace {n} d", finished_on: "Finalizada", empty_active: "No hay comisiones en curso ahora mismo.",
+            st0: "INICIAL", st1: "BOCETOS", st2: "DISEÑO", st3: "AVANZADO",
+            anon_title: "COMISIÓN ANÓNIMA", anon_text: "Los detalles se mantienen privados a petición del cliente.",
+            fin_title: "FINALIZADAS", fin_sub: "Trabajos ya entregados. Míralos en la galería.", btn_gallery: "VER EN GALERÍA", empty_fin: "Aún no hay comisiones finalizadas.",
+            gal_title: "GALERÍA", gal_sub: "Mis trabajos terminados.",
+            f_all: "TODO", f_player: "PLAYERS", f_gfx: "GRÁFICOS", f_res: "RECURSOS", no_image: "SIN IMAGEN", view_more: "VER MÁS", empty_gal: "No hay trabajos en esta categoría.",
+            con_title: "CONTACTO", con_sub: "Escríbeme para hablar de tu proyecto.",
+            how_title: "CÓMO PEDIR UNA COMISIÓN",
+            how1: "Arma tu estimado en la calculadora.",
+            how2: "Copia los detalles y envíamelos por Discord o correo.",
+            how3: "Confirmamos el alcance y las horas. Pagas el 50% por PayPal para empezar.",
+            how4: "Recibes avances durante el trabajo. Al aprobar, pagas el 50% restante y te entrego los archivos finales.",
+            footer: "© 2026 STEVEN ATAUCHI — PIXEL ART & SMW ROMHACKING"
+        },
+        en: {
+            nav_about: "ABOUT", nav_comm: "COMMISSIONS", nav_progress: "IN PROGRESS", nav_gallery: "GALLERY", nav_contact: "CONTACT",
+            palette: "PALETTE:",
+            hero_tag: "★ PIXEL ARTIST & SMW ROMHACKER",
+            hero_title: "HI! WELCOME TO MY WEBSITE.",
+            hero_desc: "I'm Steven Atauchi: a Super Mario World romhacker, ASM programmer, graphic designer and pixel artist. I specialize in creating custom resources, environments and characters for SMW. If you want to take your hack to the next level with UberASM code, Asar patches or custom GPS blocks, you're in the right place.",
+            oc_title: "WANT YOUR OC TO BE 100% PLAYABLE, SMW STYLE?",
+            oc_intro: "Time to put your creativity to work! I can adapt your original character so it comes to life inside the game with:",
+            oc_a_t: "Custom animations:",
+            oc_a_d: "From the classic vanilla SMW style to movements, expressions and animations fully tailored to your taste.",
+            oc_b_t: "Unique abilities and power-ups:",
+            oc_b_d: "I make it possible for your character to have exclusive powers and game mechanics so it stands out as much as possible.",
+            oc_end: "There's an endless world of possibilities to make your player play and feel unique.",
+            about_title: "A LITTLE MORE ABOUT ME",
+            about_p1: "I'm 20 years old and passionate about Super Mario World romhacking. I've spent years studying the game's guts to create high-quality content. I'm currently developing my own main project: SMW Mix, a fairly ambitious hack featuring new bosses, 4 playable characters and multiple custom power-ups.",
+            about_p2: "Besides ASM development and pixel art, I really enjoy traditional and digital drawing, and I often stream on Twitch, where I show my commission workflow or play with friends.",
+            why_title: "WHY DID I OPEN COMMISSIONS?",
+            why_p1: "I opened this section mainly to cover my personal expenses, stay on top of my bills and continue my university studies to reach my goal of graduating as an Engineer.",
+            why_p2: "I'm deeply grateful to everyone who trusts my work to bring their projects to life; every commission makes a big difference. If you have an idea in mind for your hack or your character, don't hesitate to contact me!",
+            dis_title: "TERMS OF SERVICE AND DISCLAIMER",
+            dis1_h: "1. Nature of the Service and Intellectual Property",
+            dis1_a_t: "Creative Design and Programming Service:",
+            dis1_a_d: "The services offered on this website consist exclusively of creating original pixel art, writing assembly language (ASM) code, and developing custom technical modifications.",
+            dis1_b_t: "No Protected Content:",
+            dis1_b_d: "Under no circumstances are digital copies of games (ROMs) sold, distributed, rented or provided.",
+            dis2_h: "2. Delivery Format",
+            dis2_a_t: "Delivery as a Patch (.BPS / .IPS / .ASM):",
+            dis2_a_d: "All work for Super Mario World (SMW) is delivered strictly as standalone data patches (such as .bps files) or code (.asm). These files contain only data instructions and original code created from scratch; they do not contain the base code of the original game.",
+            dis3_h: "3. Client Responsibility",
+            dis3_a_t: "Independent Application:",
+            dis3_a_d: "Applying the patch (.bps) to the original ROM with external tools (such as Flips) is the client's responsibility. This website does not provide or assist in obtaining illegal game files (ROMs).",
+            dis4_h: "4. Limitation of Liability and Profit",
+            dis4_a_t: "Charge for Labor:",
+            dis4_a_d: "The fees charged on this site correspond solely and exclusively to the development time, artistic design and technical labor invested in creating the custom resources. Nothing is charged for the use, distribution or access to third-party franchises.",
+            download: "DOWNLOAD",
+            status_open: "COMMISSIONS OPEN", slots_taken: "taken", slots: "SLOTS",
+            btn_order: "ORDER COMMISSION", btn_gallery_view: "VIEW GALLERY",
+            srv_title: "SERVICES & SPECIALTIES",
+            srv1_t: "Background or foreground graphics:", srv1_d: "for your SMW levels.",
+            srv2_t: "Custom players:", srv2_d: "for SMW, with all their versions.",
+            srv3_t: "Abilities for your player:", srv3_d: "new or modified powers.",
+            srv4_t: "Custom animations:", srv4_d: "for your player, on top of the vanilla ones.",
+            srv5_t: "SMW resources:", srv5_d: "UberASM code, Asar patches or GPS blocks.",
+            tk_title: "TECH BASE", tk_art: "ART", tk_art_v: "Pixel art for SMW", tk_code: "PROGRAMMING", tk_tools: "TOOLS", tk_compat: "COMPATIBILITY",
+            terms_title: "TERMS & RULES",
+            t1_h: "1. PAYMENT", t1_p: "Payment is through PayPal and charged per hour of work, documented or streamed on Twitch if the client allows it. Otherwise I send you constant progress updates with photos or videos on Discord. 50% upfront to start and 50% on completion, before the final files are delivered.",
+            t2_h: "2. REVISIONS", t2_p: "Includes minor sketch revisions. Structural changes are allowed during the initial process. Changes requested mid-work or after the work is finished have an extra cost.",
+            t3_h: "3. WHAT'S INCLUDED", t3_p: "Players include the small, big, cape and fire power versions, plus the mini character for the overworld, at no extra cost. Resources are highly customizable and support LoROM and SA-1.",
+            t4_h: "4. PRICE & TIME", t4_p: "The price depends on the hours of work. These change with how detailed your references are and which extras you ask for. Use the calculator for an estimate.",
+            calc_title: "⚡ COMMISSION CALCULATOR", calc_sub: "Configure your order and get an instant estimated invoice.",
+            cat_label: "COMMISSION TYPE:",
+            cat_player: "CUSTOM PLAYER", h_player: "from $75",
+            cat_abilities: "ABILITIES / ANIMATIONS", h_abilities: "for an existing player · from $40",
+            cat_gfx: "BG / FG GRAPHIC", h_gfx: "$25 each",
+            cat_uber: "UBERASM RESOURCE", h_uber: "from $50",
+            cat_gps: "GPS BLOCK", h_gps: "$30 each",
+            cat_asar: "ASAR PATCH", h_asar: "price on request",
+            ref_label: "CHARACTER REFERENCES:",
+            ref1: "Very detailed references and full reference sprites", ref2: "Only static details and few reference sprites", ref3: "References only as digital drawing (not pixel art)",
+            incl_note: "Includes small, big, cape and fire power versions plus the overworld mini, at no extra cost.",
+            addons_label: "PLAYER EXTRAS:",
+            anim_label: "Custom animations", anim_hint: "Extra animations beyond vanilla Mario's · 4 h · $40 each",
+            ability_label: "Special ability", ab_none: "None", ab_plain: "No custom animation", ab_anim: "With custom animation",
+            mod_label: "Modify a power", mod_hint: "E.g. the cape does something else or the fireball is different · 5 h · $50 each",
+            newp_label: "Completely new power", proj_label: "The power needs a projectile",
+            gfx_label: "Number of graphics", gfx_hint: "2–3 h · $25 each",
+            uber_label: "WHAT IS THE UBERASM RESOURCE FOR?", u_player: "For the player", u_level: "For a level", u_other: "For something else", h_tbd: "undefined",
+            gps_label: "Number of GPS blocks",
+            asar_note: "The price of an Asar patch isn't defined until you talk to Steven.",
+            vis_label: "COMMISSION VISIBILITY:", vis_public: "PUBLIC", vis_public_d: "May be shown to the public.", vis_anon: "ANONYMOUS", vis_anon_d: "Nothing is published or shown to the public.",
+            vis_note: "This only records your preference; it doesn't change the price.",
+            discord_label: "YOUR NAME / YOUR CHARACTER'S NAME:", notes_label: "PROJECT NOTES (OPTIONAL):",
+            sum_title: "ESTIMATED INVOICE", sum_empty: "Pick at least one option to see the breakdown.",
+            total_label: "ESTIMATED TOTAL:", pending_note: "+ items still to be defined", hours_label: "Estimated hours", deposit_label: "Deposit (50%)",
+            copy_btn: "COPY ORDER DETAILS", toast_copied: "DETAILS COPIED!",
+            li_ref1: "Player · detailed references", li_ref2: "Player · static details", li_ref3: "Player · digital drawing",
+            li_anim: "Custom animation", li_ab_plain: "Special ability (no animation)", li_ab_anim: "Special ability (with animation)",
+            li_mod: "Power modification", li_newp: "Completely new power", li_proj: "Power projectile",
+            li_gfx: "BG / FG graphic", li_uber_player: "UberASM for player", li_uber_level: "UberASM for level", li_uber_other: "UberASM for something else",
+            li_gps: "GPS block", li_asar: "Asar patch",
+            tbd: "undefined, must talk to Steven", tbd_short: "TBD", TBD: "TO BE DEFINED",
+            inv_head: "COMMISSION REQUEST", inv_type: "Type", inv_items: "Breakdown", inv_total: "Estimated total", inv_deposit: "Deposit (50%)", inv_vis: "Visibility", inv_discord: "Name / Character", inv_notes: "Notes",
+            prog_title: "COMMISSIONS IN PROGRESS", prog_sub: "Sorted by start date, oldest first.",
+            started: "Started", days_ago: "{n} d ago", finished_on: "Finished", empty_active: "No commissions in progress right now.",
+            st0: "INITIAL", st1: "SKETCHES", st2: "DESIGN", st3: "ADVANCED",
+            anon_title: "ANONYMOUS COMMISSION", anon_text: "Details are kept private at the client's request.",
+            fin_title: "FINISHED", fin_sub: "Delivered work. See it in the gallery.", btn_gallery: "VIEW IN GALLERY", empty_fin: "No finished commissions yet.",
+            gal_title: "GALLERY", gal_sub: "My finished work.",
+            f_all: "ALL", f_player: "PLAYERS", f_gfx: "GRAPHICS", f_res: "RESOURCES", no_image: "NO IMAGE", view_more: "VIEW MORE", empty_gal: "No work in this category.",
+            con_title: "CONTACT", con_sub: "Write to me to talk about your project.",
+            how_title: "HOW TO ORDER A COMMISSION",
+            how1: "Build your estimate in the calculator.",
+            how2: "Copy the details and send them to me on Discord or by email.",
+            how3: "We confirm the scope and hours. You pay 50% through PayPal to start.",
+            how4: "You get progress updates during the work. On approval, you pay the remaining 50% and I deliver the final files.",
+            footer: "© 2026 STEVEN ATAUCHI — PIXEL ART & SMW ROMHACKING"
+        },
+        pt: {
+            nav_about: "SOBRE", nav_comm: "COMISSÕES", nav_progress: "EM ANDAMENTO", nav_gallery: "GALERIA", nav_contact: "CONTATO",
+            palette: "PALETA:",
+            hero_tag: "★ ARTISTA PIXEL ART & ROMHACKER DE SMW",
+            hero_title: "OLÁ! BEM-VINDO AO MEU SITE.",
+            hero_desc: "Eu sou o Steven Atauchi, romhacker de Super Mario World, programador em ASM, designer gráfico e artista de pixel art. Sou especializado em criar recursos, cenários e personagens personalizados para SMW. Se você quer levar o seu hack para o próximo nível com código UberASM, patches para Asar ou blocos personalizados para GPS, você está no lugar certo.",
+            oc_title: "QUER QUE O SEU OC SEJA 100% JOGÁVEL NO ESTILO SMW?",
+            oc_intro: "É hora de fazer a sua criatividade render! Posso adaptar o seu personagem original para que ele ganhe vida dentro do jogo com:",
+            oc_a_t: "Animações personalizadas:",
+            oc_a_d: "Do estilo clássico vanilla do SMW até movimentos, expressões e animações totalmente adaptados ao seu gosto.",
+            oc_b_t: "Habilidades e power-ups únicos:",
+            oc_b_d: "Faço com que o seu personagem tenha poderes e mecânicas de jogo exclusivos para se destacar ao máximo.",
+            oc_end: "Existe um mundo infinito de possibilidades para fazer o seu player jogar e se sentir de forma única.",
+            about_title: "UM POUCO MAIS SOBRE MIM",
+            about_p1: "Tenho 20 anos e sou apaixonado por romhacking de Super Mario World. Dediquei anos a estudar as entranhas do jogo para criar conteúdo de alta qualidade. Atualmente estou desenvolvendo o meu projeto principal: SMW Mix, um hack bastante ambicioso que inclui novos bosses, 4 personagens jogáveis e vários custom power-ups.",
+            about_p2: "Além do desenvolvimento em ASM e do pixel art, gosto muito de desenho tradicional e digital, e costumo fazer transmissões na Twitch, onde mostro o processo de trabalho nas comissões ou jogo com amigos.",
+            why_title: "POR QUE ABRI COMISSÕES?",
+            why_p1: "Abri esta seção principalmente para custear as minhas despesas pessoais, manter as minhas contas em dia e continuar os meus estudos universitários para alcançar a minha meta de me formar como Engenheiro.",
+            why_p2: "Sou muito grato a cada pessoa que confia no meu trabalho para dar vida aos seus projetos; cada comissão faz uma grande diferença. Se você tem uma ideia para o seu hack ou o seu personagem, não hesite em entrar em contato!",
+            dis_title: "TERMOS DE SERVIÇO E ISENÇÃO DE RESPONSABILIDADE (DISCLAIMER)",
+            dis1_h: "1. Natureza do Serviço e Propriedade Intelectual",
+            dis1_a_t: "Serviço de Design Criativo e Programação:",
+            dis1_a_d: "Os serviços oferecidos neste site consistem exclusivamente na criação de arte original em pixel art, na programação de código em linguagem assembly (ASM) e no desenvolvimento de modificações técnicas personalizadas.",
+            dis1_b_t: "Ausência de Conteúdo Protegido:",
+            dis1_b_d: "Em nenhuma hipótese são vendidas, distribuídas, alugadas ou fornecidas cópias digitais de jogos (ROMs).",
+            dis2_h: "2. Formato de Entrega",
+            dis2_a_t: "Entrega em Formato de Patch (.BPS / .IPS / .ASM):",
+            dis2_a_d: "Todo o trabalho aplicável a Super Mario World (SMW) é entregue estritamente em formatos de patches de dados independentes (como arquivos .bps) ou códigos (.asm). Esses arquivos contêm apenas instruções de dados e código original criado do zero; não contêm o código base do jogo original.",
+            dis3_h: "3. Responsabilidade do Cliente",
+            dis3_a_t: "Aplicação Autônoma:",
+            dis3_a_d: "O processo de aplicar o patch (.bps) à ROM original por meio de ferramentas externas (como o Flips) é de responsabilidade do cliente. Este site não fornece nem auxilia na obtenção de arquivos de jogos ilegais (ROMs).",
+            dis4_h: "4. Limitação de Responsabilidade e Fins Lucrativos",
+            dis4_a_t: "Cobrança por Mão de Obra:",
+            dis4_a_d: "As tarifas cobradas neste site correspondem única e exclusivamente ao tempo de desenvolvimento, ao design artístico e à mão de obra técnica investidos na criação dos recursos personalizados. Não se cobra pelo uso, distribuição ou acesso a franquias de terceiros.",
+            download: "BAIXAR",
+            status_open: "COMISSÕES ABERTAS", slots_taken: "ocupados", slots: "SLOTS",
+            btn_order: "PEDIR COMISSÃO", btn_gallery_view: "VER GALERIA",
+            srv_title: "SERVIÇOS & ESPECIALIDADES",
+            srv1_t: "Gráficos de background ou foreground:", srv1_d: "para as suas fases de SMW.",
+            srv2_t: "Players personalizados:", srv2_d: "para SMW, com todas as versões.",
+            srv3_t: "Habilidades para o seu player:", srv3_d: "poderes novos ou modificados.",
+            srv4_t: "Animações personalizadas:", srv4_d: "para o seu player, além das vanilla.",
+            srv5_t: "Recursos para SMW:", srv5_d: "código UberASM, patches para Asar ou blocos para GPS.",
+            tk_title: "BASE TÉCNICA", tk_art: "ARTE", tk_art_v: "Pixel art para SMW", tk_code: "PROGRAMAÇÃO", tk_tools: "FERRAMENTAS", tk_compat: "COMPATIBILIDADE",
+            terms_title: "TERMOS E REGRAS",
+            t1_h: "1. PAGAMENTO", t1_p: "O pagamento é feito por PayPal e cobrado por hora de trabalho, documentada ou transmitida ao vivo na Twitch se o cliente permitir. Caso contrário, envio atualizações constantes com fotos ou vídeos pelo Discord. 50% de entrada para começar e 50% ao finalizar, antes de entregar os arquivos finais.",
+            t2_h: "2. REVISÕES", t2_p: "Inclui revisões menores do esboço. Mudanças estruturais são permitidas no processo inicial. Se pedir mudanças no meio do trabalho ou com o trabalho pronto, haverá custo extra.",
+            t3_h: "3. O QUE ESTÁ INCLUÍDO", t3_p: "Os players incluem as versões small, grande, com capa, com poder de fogo e o personagem mini do overworld, sem custo extra. Os recursos são altamente personalizáveis e têm suporte a LoROM e SA-1.",
+            t4_h: "4. PREÇO E TEMPO", t4_p: "O preço depende das horas de trabalho. Elas mudam conforme o nível de detalhe das suas referências e os extras que você pedir. Use a calculadora para uma estimativa.",
+            calc_title: "⚡ CALCULADORA DE COMISSÃO", calc_sub: "Configure o seu pedido e receba uma fatura estimada na hora.",
+            cat_label: "TIPO DE ENCOMENDA:",
+            cat_player: "PLAYER PERSONALIZADO", h_player: "a partir de $75",
+            cat_abilities: "HABILIDADES / ANIMAÇÕES", h_abilities: "para um player existente · a partir de $40",
+            cat_gfx: "GRÁFICO BG / FG", h_gfx: "$25 cada",
+            cat_uber: "RECURSO UBERASM", h_uber: "a partir de $50",
+            cat_gps: "BLOCO GPS", h_gps: "$30 cada",
+            cat_asar: "PATCH ASAR", h_asar: "preço sob consulta",
+            ref_label: "REFERÊNCIAS DO PERSONAGEM:",
+            ref1: "Referências muito detalhadas e sprites completos de referência", ref2: "Apenas detalhes estáticos e poucos sprites de referência", ref3: "Referências apenas em desenho digital (não pixel art)",
+            incl_note: "Inclui as versões small, grande, com capa, com poder de fogo e o mini do overworld, sem custo extra.",
+            addons_label: "EXTRAS DO PLAYER:",
+            anim_label: "Animações custom", anim_hint: "Animações adicionais às do Mario vanilla · 4 h · $40 cada",
+            ability_label: "Habilidade especial", ab_none: "Nenhuma", ab_plain: "Sem animação custom", ab_anim: "Com animação custom",
+            mod_label: "Modificar um poder", mod_hint: "Ex.: a capa fazer outra coisa ou a bola de fogo ser diferente · 5 h · $50 cada",
+            newp_label: "Poder totalmente novo", proj_label: "O poder precisa de um projétil",
+            gfx_label: "Quantidade de gráficos", gfx_hint: "2–3 h · $25 cada",
+            uber_label: "PARA QUE SERVE O RECURSO UBERASM?", u_player: "Para o player", u_level: "Para uma fase", u_other: "Para outra coisa", h_tbd: "indefinido",
+            gps_label: "Quantidade de blocos GPS",
+            asar_note: "O preço de um patch para Asar não é definido até você falar com o Steven.",
+            vis_label: "VISIBILIDADE DA COMISSÃO:", vis_public: "PÚBLICA", vis_public_d: "Pode ser mostrada ao público.", vis_anon: "ANÔNIMA", vis_anon_d: "Nada é publicado nem mostrado ao público.",
+            vis_note: "Serve só para registrar a sua preferência; não altera o preço.",
+            discord_label: "SEU NOME / NOME DO SEU PERSONAGEM:", notes_label: "NOTAS DO PROJETO (OPCIONAL):",
+            sum_title: "FATURA ESTIMADA", sum_empty: "Escolha pelo menos uma opção para ver o detalhamento.",
+            total_label: "TOTAL ESTIMADO:", pending_note: "+ itens ainda por definir", hours_label: "Horas estimadas", deposit_label: "Entrada (50%)",
+            copy_btn: "COPIAR DETALHES DO PEDIDO", toast_copied: "DETALHES COPIADOS!",
+            li_ref1: "Player · referências detalhadas", li_ref2: "Player · detalhes estáticos", li_ref3: "Player · desenho digital",
+            li_anim: "Animação custom", li_ab_plain: "Habilidade especial (sem animação)", li_ab_anim: "Habilidade especial (com animação)",
+            li_mod: "Modificação de poder", li_newp: "Poder totalmente novo", li_proj: "Projétil do poder",
+            li_gfx: "Gráfico BG / FG", li_uber_player: "UberASM para player", li_uber_level: "UberASM para fase", li_uber_other: "UberASM para outra coisa",
+            li_gps: "Bloco GPS", li_asar: "Patch Asar",
+            tbd: "indefinido, deve falar com o Steven", tbd_short: "a definir", TBD: "A DEFINIR",
+            inv_head: "PEDIDO DE COMISSÃO", inv_type: "Tipo", inv_items: "Detalhamento", inv_total: "Total estimado", inv_deposit: "Entrada (50%)", inv_vis: "Visibilidade", inv_discord: "Nome / Personagem", inv_notes: "Notas",
+            prog_title: "COMISSÕES EM ANDAMENTO", prog_sub: "Ordenadas por data de início, da mais antiga à mais recente.",
+            started: "Início", days_ago: "há {n} d", finished_on: "Finalizada", empty_active: "Não há comissões em andamento agora.",
+            st0: "INICIAL", st1: "ESBOÇOS", st2: "DESIGN", st3: "AVANÇADO",
+            anon_title: "COMISSÃO ANÔNIMA", anon_text: "Os detalhes são mantidos privados a pedido do cliente.",
+            fin_title: "FINALIZADAS", fin_sub: "Trabalhos já entregues. Veja na galeria.", btn_gallery: "VER NA GALERIA", empty_fin: "Ainda não há comissões finalizadas.",
+            gal_title: "GALERIA", gal_sub: "Meus trabalhos concluídos.",
+            f_all: "TUDO", f_player: "PLAYERS", f_gfx: "GRÁFICOS", f_res: "RECURSOS", no_image: "SEM IMAGEM", view_more: "VER MAIS", empty_gal: "Não há trabalhos nesta categoria.",
+            con_title: "CONTATO", con_sub: "Escreva-me para falar sobre o seu projeto.",
+            how_title: "COMO PEDIR UMA COMISSÃO",
+            how1: "Monte a sua estimativa na calculadora.",
+            how2: "Copie os detalhes e envie para mim pelo Discord ou e-mail.",
+            how3: "Confirmamos o escopo e as horas. Você paga 50% por PayPal para começar.",
+            how4: "Você recebe atualizações durante o trabalho. Ao aprovar, paga os 50% restantes e eu entrego os arquivos finais.",
+            footer: "© 2026 STEVEN ATAUCHI — PIXEL ART & SMW ROMHACKING"
+        }
+        };
+
+        let lang = CONFIG.defaultLang;
+        const t = (k) => (I18N[lang] && I18N[lang][k]) || I18N.es[k] || k;
+        const tx = (o) => (o && (o[lang] || o.es)) || "";
+        const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+        function applyLang(l) {
+            lang = I18N[l] ? l : "es";
+            try { localStorage.setItem("lang", lang); } catch (e) {}
+            document.documentElement.lang = lang;
+            document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+            document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
+            const active = document.getElementById("lang-" + lang);
+            if (active) active.classList.add("active");
+            renderSlots(); renderActive(); renderFinished(); renderGallery(); renderContacts(); calculateQuote();
+        }
+
+        /* ===================================================================
+           TABS, TEMA, TOAST
+           =================================================================== */
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+            document.querySelectorAll("nav .pixel-btn").forEach(el => el.classList.remove("active"));
+            const tab = document.getElementById("tab-" + tabId);
+            const btn = document.getElementById("tab-btn-" + tabId);
+            if (tab) tab.classList.remove("hidden");
+            if (btn) btn.classList.add("active");
+            window.scrollTo({ top: 0 });
+        }
+
+        function changeTheme(key) {
+            document.body.classList.remove("theme-gb", "theme-cyber");
+            if (key === "gb") document.body.classList.add("theme-gb");
+            if (key === "cyber") document.body.classList.add("theme-cyber");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toast-msg").textContent = msg;
+            toast.classList.remove("hidden");
+            setTimeout(() => toast.classList.add("hidden"), 2500);
+        }
+
+        /* ===================================================================
+           SLOTS
+           =================================================================== */
+        function renderSlots() {
+            const used = ACTIVE.length, total = CONFIG.totalSlots;
+            let bar = "";
+            for (let i = 0; i < total; i++) bar += `<span class="slot ${i < used ? "used" : ""}"></span>`;
+            document.querySelectorAll(".slots-bar").forEach(el => el.innerHTML = bar);
+            document.querySelectorAll(".slots-text").forEach(el => el.textContent = `${t("slots")} ${used}/${total} ${t("slots_taken")}`);
+        }
+
+        /* ===================================================================
+           CALCULADORA
+           =================================================================== */
+        const S = { anims: 0, mods: 0, gfx: 1, gps: 1 };
+        let lastQuote = null;
+
+        function step(key, d) {
+            const min = (key === "gfx" || key === "gps") ? 1 : 0;
+            S[key] = Math.max(min, Math.min(20, S[key] + d));
+            document.getElementById("q-" + key).textContent = S[key];
+            calculateQuote();
+        }
+
+        const getVal = (name) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : null; };
+        const fmtH = (a, b) => a === b ? `${a} h` : `${a}–${b} h`;
+
+        function calculateQuote() {
+            const cat = getVal("cat") || "player";
+
+            // Mostrar / ocultar grupos según el tipo
+            const groups = { player: ["g-ref", "g-addons"], abilities: ["g-addons"], gfx: ["g-gfx"], uber: ["g-uber"], gps: ["g-gps"], asar: ["g-asar"] };
+            ["g-ref", "g-addons", "g-gfx", "g-uber", "g-gps", "g-asar"].forEach(id => {
+                document.getElementById(id).classList.toggle("hidden", !groups[cat].includes(id));
+            });
+
+            // Proyectil solo si hay poder nuevo
+            const newP = document.getElementById("opt-newpower");
+            const proj = document.getElementById("opt-proj");
+            proj.disabled = !newP.checked;
+            if (!newP.checked) proj.checked = false;
+            document.getElementById("lbl-proj").style.opacity = newP.checked ? "1" : "0.4";
+
+            // Líneas de la factura: { key, qty, hMin, hMax, unit (null = sin definir) }
+            const items = [];
+            const add = (key, qty, hMin, hMax, unit) => items.push({ key, qty, hMin, hMax, unit });
+
+            if (cat === "player") {
+                const ref = getVal("ref");
+                if (ref === "r1") add("li_ref1", 1, 7, 8, 75);
+                if (ref === "r2") add("li_ref2", 1, 15, 15, 150);
+                if (ref === "r3") add("li_ref3", 1, 20, 20, 200);
+            }
+            if (cat === "player" || cat === "abilities") {
+                if (S.anims > 0) add("li_anim", S.anims, 4, 4, 40);
+                const ab = getVal("ability");
+                if (ab === "plain") add("li_ab_plain", 1, 4, 4, 40);
+                if (ab === "anim") add("li_ab_anim", 1, 6, 6, 60);
+                if (S.mods > 0) add("li_mod", S.mods, 5, 5, 50);
+                if (newP.checked) add("li_newp", 1, 10, 10, 100);
+                if (proj.checked) add("li_proj", 1, 5, 5, 50);
+            }
+            if (cat === "gfx") add("li_gfx", S.gfx, 2, 3, 25);
+            if (cat === "uber") {
+                const u = getVal("uber");
+                if (u === "player") add("li_uber_player", 1, 5, 5, 50);
+                if (u === "level") add("li_uber_level", 1, 5, 5, 50);
+                if (u === "other") add("li_uber_other", 1, 0, 0, null);
+            }
+            if (cat === "gps") add("li_gps", S.gps, 0, 0, 30);
+            if (cat === "asar") add("li_asar", 1, 0, 0, null);
+
+            let total = 0, hMin = 0, hMax = 0, pending = false;
+            let html = "";
+            items.forEach(it => {
+                const q = it.qty > 1 ? ` ×${it.qty}` : "";
+                if (it.unit === null) {
+                    pending = true;
+                    html += `<div><div class="flex justify-between gap-2"><span>${esc(t(it.key))}${q}</span><span class="text-[var(--accent-yellow)]">${esc(t("tbd_short"))}</span></div>
+                             <div class="text-[10px] text-[var(--accent-yellow)]">${esc(t("tbd"))}</div></div>`;
+                } else {
+                    const line = it.unit * it.qty;
+                    total += line;
+                    hMin += it.hMin * it.qty; hMax += it.hMax * it.qty;
+                    const hTxt = it.hMax > 0 ? `<div class="text-[10px] text-gray-400">${fmtH(it.hMin * it.qty, it.hMax * it.qty)}</div>` : "";
+                    html += `<div><div class="flex justify-between gap-2"><span>${esc(t(it.key))}${q}</span><span>$${line}</span></div>${hTxt}</div>`;
+                }
+            });
+            if (!items.length) html = `<p class="text-gray-400">${esc(t("sum_empty"))}</p>`;
+
+            const deposit = total / 2;
+            document.getElementById("quote-breakdown").innerHTML = html;
+            document.getElementById("quote-total").textContent = (total === 0 && pending) ? t("TBD") : `$${total} USD`;
+            document.getElementById("quote-pending").classList.toggle("hidden", !(pending && total > 0));
+            document.getElementById("quote-hours").textContent = hMax > 0 ? fmtH(hMin, hMax) : "—";
+            document.getElementById("quote-deposit").textContent = `$${deposit.toFixed(2)}`;
+
+            lastQuote = { cat, items, total, deposit, pending, hMin, hMax };
+        }
+
+        function copyCommissionRequest() {
+            if (!lastQuote) return;
+            const q = lastQuote;
+            const vis = getVal("vis") === "anon" ? t("vis_anon") : t("vis_public");
+            const discord = document.getElementById("in-discord").value.trim();
+            const notes = document.getElementById("in-notes").value.trim();
+
+            const lines = [`--- STEVEN ATAUCHI · ${t("inv_head")} ---`, `${t("inv_type")}: ${t("cat_" + q.cat)}`, `${t("inv_items")}:`];
+            q.items.forEach(it => {
+                const qty = it.qty > 1 ? ` x${it.qty}` : "";
+                const price = it.unit === null ? t("tbd") : `$${it.unit * it.qty}`;
+                lines.push(`  - ${t(it.key)}${qty}: ${price}`);
+            });
+            lines.push(`${t("inv_total")}: ${q.total === 0 && q.pending ? t("TBD") : "$" + q.total + " USD"}${q.pending && q.total > 0 ? " (" + t("pending_note") + ")" : ""}`);
+            lines.push(`${t("inv_deposit")}: $${q.deposit.toFixed(2)}`);
+            lines.push(`${t("inv_vis")}: ${vis}`);
+            if (discord) lines.push(`${t("inv_discord")}: ${discord}`);
+            if (notes) lines.push(`${t("inv_notes")}: ${notes}`);
+            lines.push("------------------------------------------");
+            const text = lines.join("\n");
+
+            const fallback = () => {
+                const ta = document.createElement("textarea");
+                ta.value = text; document.body.appendChild(ta); ta.select();
+                try { document.execCommand("copy"); } catch (e) {}
+                document.body.removeChild(ta);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).catch(fallback);
+            } else { fallback(); }
+            showToast(t("toast_copied"));
+        }
+
+        /* ===================================================================
+           COMISIONES EN CURSO / FINALIZADAS
+           =================================================================== */
+        function fmtDate(iso) {
+            return new Date(iso + "T00:00:00").toLocaleDateString(LOCALES[lang], { year: "numeric", month: "short", day: "numeric" });
+        }
+        function daysSince(iso) {
+            return Math.max(0, Math.floor((Date.now() - new Date(iso + "T00:00:00").getTime()) / 86400000));
+        }
+
+        function renderActive() {
+            const el = document.getElementById("active-list");
+            if (!el) return;
+            const list = [...ACTIVE].sort((a, b) => a.start.localeCompare(b.start));
+            if (!list.length) { el.innerHTML = `<p class="text-xs text-gray-400 p-4">${esc(t("empty_active"))}</p>`; return; }
+
+            el.innerHTML = list.map(c => {
+                const segs = [0, 1, 2, 3].map(i => `
+                    <div class="flex-1">
+                        <div class="stage-seg ${i < c.stage ? "done" : i === c.stage ? "current" : ""}"></div>
+                        <div class="text-[9px] font-pixel mt-1 ${i === c.stage ? "text-[var(--accent-main)]" : "text-gray-400"}">${i === c.stage ? "▶ " : ""}${esc(t("st" + i))}</div>
+                    </div>`).join("");
+
+                const head = c.anonymous
+                    ? `<div class="flex items-center gap-3">
+                           <svg class="w-8 h-8 fill-current text-[var(--accent-yellow)] flex-shrink-0" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="2" width="6" height="2"/><rect x="4" y="4" width="2" height="4"/><rect x="10" y="4" width="2" height="4"/><rect x="2" y="7" width="12" height="7"/></svg>
+                           <div><h3 class="font-pixel text-xs text-[var(--accent-yellow)]">${esc(t("anon_title"))}</h3>
+                           <p class="text-[11px] text-gray-400 mt-1">${esc(t("anon_text"))}</p></div>
+                       </div>`
+                    : `<div><h3 class="font-pixel text-xs text-[var(--accent-cyan)]">${esc(c.name)}</h3>
+                       <span class="inline-block mt-2 text-[9px] font-pixel px-1.5 py-0.5 bg-[var(--border-outer)] text-[var(--accent-yellow)] border border-[var(--border-inner)]">${esc(t("cat_" + c.type))}</span></div>`;
+
+                return `<div class="pixel-box p-4 space-y-4">
+                    <div class="flex flex-wrap justify-between gap-3">
+                        ${head}
+                        <div class="text-right text-[10px] font-pixel text-gray-300">
+                            <div class="text-gray-400">${esc(t("started"))}</div>
+                            <div>${esc(fmtDate(c.start))}</div>
+                            <div class="text-[var(--accent-yellow)] mt-1">${esc(t("days_ago").replace("{n}", daysSince(c.start)))}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-1" role="img" aria-label="${esc(t("st" + c.stage))}">${segs}</div>
+                </div>`;
+            }).join("");
+        }
+
+        function renderFinished() {
+            const el = document.getElementById("finished-list");
+            if (!el) return;
+            const list = [...FINISHED].sort((a, b) => b.end.localeCompare(a.end));
+            if (!list.length) { el.innerHTML = `<p class="text-xs text-gray-400 p-4">${esc(t("empty_fin"))}</p>`; return; }
+            el.innerHTML = list.map(f => `
+                <div class="pixel-box p-4 flex flex-col justify-between gap-3 border-[var(--accent-green)]">
+                    <div>
+                        <div class="flex justify-between items-start gap-2 mb-2">
+                            <h3 class="font-pixel text-xs text-[var(--accent-green)]">✔ ${esc(f.name)}</h3>
+                            <span class="text-[9px] font-pixel px-1.5 py-0.5 bg-[var(--border-outer)] text-[var(--accent-yellow)] border border-[var(--border-inner)]">${esc(t("cat_" + f.type))}</span>
+                        </div>
+                        <p class="text-[10px] text-gray-400 font-pixel">${esc(t("started"))}: ${esc(fmtDate(f.start))}</p>
+                        <p class="text-[10px] text-gray-400 font-pixel mt-1">${esc(t("finished_on"))}: ${esc(fmtDate(f.end))}</p>
+                    </div>
+                    <button onclick="goToGallery('${esc(f.galleryId)}')" class="pixel-btn px-3 py-2 text-[10px] font-pixel bg-[var(--accent-green)] text-black font-bold">${esc(t("btn_gallery"))}</button>
+                </div>`).join("");
+        }
+
+        /* ===================================================================
+           GALERÍA
+           =================================================================== */
+        let galFilter = "all";
+        const GAL_KEYS = { player: "f_player", gfx: "f_gfx", resource: "f_res" };
+
+        function renderGallery() {
+            const el = document.getElementById("gallery-container");
+            if (!el) return;
+            const list = GALLERY.filter(g => galFilter === "all" || g.category === galFilter);
+            if (!list.length) { el.innerHTML = `<p class="text-xs text-gray-400 p-4">${esc(t("empty_gal"))}</p>`; return; }
+            el.innerHTML = list.map(g => {
+                const media = g.image
+                    ? `<img src="${esc(g.image)}" alt="${esc(g.title)}" loading="lazy" class="w-full h-full object-cover pixel-img">`
+                    : `<div class="flex flex-col items-center gap-2 text-gray-400">
+                           <svg viewBox="0 0 16 16" class="w-14 h-14 fill-current text-[var(--border-inner)]" aria-hidden="true"><rect x="2" y="2" width="12" height="12" opacity=".35"/><rect x="6" y="4" width="4" height="2"/><rect x="9" y="6" width="2" height="2"/><rect x="7" y="8" width="2" height="2"/><rect x="7" y="11" width="2" height="2"/></svg>
+                           <span class="text-[9px] font-pixel">${esc(t("no_image"))}</span></div>`;
+                const link = g.link ? `<a href="${esc(g.link)}" target="_blank" rel="noopener" class="pixel-btn px-3 py-1 text-[10px] font-pixel inline-block">${esc(t("view_more"))}</a>` : "";
+                // El botón "Descargar" solo aparece si el trabajo tiene un enlace en "download"
+                const dl = g.download ? `<a href="${esc(g.download)}" target="_blank" rel="noopener" class="pixel-btn px-3 py-1 text-[10px] font-pixel inline-block bg-[var(--accent-green)] text-black font-bold">${esc(t("download"))}</a>` : "";
+                return `<div id="gal-${esc(g.id)}" class="pixel-box p-4 flex flex-col gap-3">
+                    <div class="aspect-video bg-black/40 border-2 border-[var(--border-inner)] flex items-center justify-center overflow-hidden">${media}</div>
+                    <div class="flex justify-between items-start gap-2">
+                        <h3 class="font-pixel text-xs text-[var(--accent-cyan)]">${esc(g.title)}</h3>
+                        <span class="text-[9px] font-pixel px-1.5 py-0.5 bg-[var(--border-outer)] text-[var(--accent-yellow)] border border-[var(--border-inner)]">${esc(t(GAL_KEYS[g.category] || "f_all"))}</span>
+                    </div>
+                    <p class="text-xs text-gray-300">${esc(tx(g.desc))}</p>
+                    <div class="flex justify-between items-center pt-2 border-t border-[var(--border-outer)]">
+                        <span class="text-[10px] font-pixel text-gray-400">${esc(fmtDate(g.date))}</span><div class="flex flex-wrap gap-2 justify-end">${dl}${link}</div>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
+        function filterGallery(cat, btn) {
+            galFilter = cat;
+            document.querySelectorAll(".gal-filter-btn").forEach(b => b.classList.remove("active"));
+            if (btn) btn.classList.add("active");
+            renderGallery();
+        }
+
+        function goToGallery(id) {
+            galFilter = "all";
+            document.querySelectorAll(".gal-filter-btn").forEach((b, i) => b.classList.toggle("active", i === 0));
+            renderGallery();
+            switchTab("gallery");
+            const target = document.getElementById("gal-" + id);
+            if (target) {
+                target.scrollIntoView({ block: "center" });
+                target.classList.add("hl");
+                setTimeout(() => target.classList.remove("hl"), 2500);
+            }
+        }
+
+        /* ===================================================================
+           CONTACTO
+           =================================================================== */
+        function renderContacts() {
+            const el = document.getElementById("contact-list");
+            if (!el) return;
+            el.innerHTML = CONTACTS.map(c => {
+                const inner = `<div class="text-[var(--accent-yellow)] font-pixel text-[10px] mb-1">${esc(c.label)}</div>
+                               <div class="text-[var(--accent-cyan)] break-all">${esc(c.value)}</div>`;
+                return c.href
+                    ? `<a href="${esc(c.href)}" target="_blank" rel="noopener" class="block p-3 bg-black/30 border border-[var(--border-inner)] hover:border-[var(--accent-main)]">${inner}</a>`
+                    : `<div class="p-3 bg-black/30 border border-[var(--border-inner)]">${inner}</div>`;
+            }).join("");
+        }
+
+        /* ===================================================================
+           INICIO
+           =================================================================== */
+        window.onload = function () {
+            document.querySelectorAll("[data-avatar]").forEach(img => { img.src = CONFIG.avatar; });
+            let saved = null;
+            try { saved = localStorage.getItem("lang"); } catch (e) {}
+            applyLang(saved && I18N[saved] ? saved : CONFIG.defaultLang);
+        };
+    </script>
+</body>
+</html>
